@@ -109,7 +109,11 @@ mod sleep;
 pub use sleep::{sleep, sleep_until, Sleep};
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
-pub use wasmtimer::tokio::{sleep, sleep_until, Sleep};
+pub fn sleep_until(instant: Instant) -> Sleep {
+    wasmtimer::tokio::sleep_until(instant.into_std())
+}
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+pub use wasmtimer::tokio::{sleep, Sleep};
 
 #[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
 mod timeout;
