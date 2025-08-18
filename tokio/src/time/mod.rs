@@ -95,15 +95,30 @@ pub mod error;
 mod instant;
 pub use self::instant::Instant;
 
+#[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
 mod interval;
+#[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
 pub use interval::{interval, interval_at, Interval, MissedTickBehavior};
 
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+pub use wasmtimer::tokio::{interval, interval_at, Interval, MissedTickBehavior};
+
+#[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
 mod sleep;
+#[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
 pub use sleep::{sleep, sleep_until, Sleep};
 
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+pub use wasmtimer::tokio::{sleep, sleep_until, Sleep};
+
+#[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
 mod timeout;
+#[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
 #[doc(inline)]
 pub use timeout::{timeout, timeout_at, Timeout};
+
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+pub use wasmtimer::tokio::{timeout, timeout_at, Timeout};
 
 // Re-export for convenience
 #[doc(no_inline)]

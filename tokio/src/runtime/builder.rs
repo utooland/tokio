@@ -130,6 +130,9 @@ pub struct Builder {
 
     #[cfg(tokio_unstable)]
     pub(super) unhandled_panic: UnhandledPanic,
+
+    #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+    pub(super) wasm_bindgen_shim_url: Option<String>,
 }
 
 cfg_unstable! {
@@ -312,6 +315,9 @@ impl Builder {
             metrics_poll_count_histogram: HistogramBuilder::default(),
 
             disable_lifo_slot: false,
+
+            #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+            wasm_bindgen_shim_url: None,
         }
     }
 
@@ -1035,6 +1041,13 @@ impl Builder {
     /// ```
     pub fn event_interval(&mut self, val: u32) -> &mut Self {
         self.event_interval = val;
+        self
+    }
+
+    /// Set the wasm_bindgen_shim_url for web worker
+    #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+    pub fn wasm_bindgen_shim_url(&mut self, url: String) -> &mut Self {
+        self.wasm_bindgen_shim_url = Some(url);
         self
     }
 

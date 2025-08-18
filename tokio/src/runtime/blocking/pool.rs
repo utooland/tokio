@@ -100,6 +100,9 @@ struct Inner {
 
     // Metrics about the pool.
     metrics: SpawnerMetrics,
+
+    #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+    wasm_bindgen_shim_url: Option<String>,
 }
 
 struct Shared {
@@ -231,6 +234,8 @@ impl BlockingPool {
                     thread_cap,
                     keep_alive,
                     metrics: SpawnerMetrics::default(),
+                    #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+                    wasm_bindgen_shim_url: builder.wasm_bindgen_shim_url.clone(),
                 }),
             },
             shutdown_rx,
@@ -461,6 +466,10 @@ impl Spawner {
         id: usize,
     ) -> io::Result<thread::JoinHandle<()>> {
         let mut builder = thread::Builder::new().name((self.inner.thread_name)());
+        #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+        if let Some(wasm_bindgen_shim_url) = self.inner.wasm_bindgen_shim_url.as_ref() {
+            builder = builder.wasm_bindgen_shim_url(wasm_bindgen_shim_url.clone());
+        }
 
         if let Some(stack_size) = self.inner.stack_size {
             builder = builder.stack_size(stack_size);

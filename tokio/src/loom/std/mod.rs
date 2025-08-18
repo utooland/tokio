@@ -92,6 +92,7 @@ pub(crate) mod sys {
 
         const ENV_WORKER_THREADS: &str = "TOKIO_WORKER_THREADS";
 
+        #[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
         match std::env::var(ENV_WORKER_THREADS) {
             Ok(s) => {
                 let n = s.parse().unwrap_or_else(|e| {
@@ -107,6 +108,9 @@ pub(crate) mod sys {
                 panic!("\"{ENV_WORKER_THREADS}\" must be valid unicode, error: {e:?}")
             }
         }
+
+        #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+        wasm_thread::available_parallelism().map_or(1, NonZeroUsize::get)
     }
 
     #[cfg(not(feature = "rt-multi-thread"))]
@@ -121,9 +125,16 @@ pub(crate) mod thread {
         std::hint::spin_loop();
     }
 
+    pub(crate) use std::thread::{panicking, park, park_timeout, AccessError, LocalKey};
+
+    #[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
     #[allow(unused_imports)]
     pub(crate) use std::thread::{
-        current, panicking, park, park_timeout, sleep, spawn, AccessError, Builder, JoinHandle,
-        LocalKey, Result, Thread, ThreadId,
+        current, sleep, spawn, Builder, JoinHandle, Result, Thread, ThreadId,
+    };
+
+    #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+    pub(crate) use wasm_thread::{
+        current, sleep, spawn, Builder, JoinHandle, Result, Thread, ThreadId,
     };
 }

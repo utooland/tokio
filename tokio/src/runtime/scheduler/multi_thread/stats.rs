@@ -1,6 +1,12 @@
 use crate::runtime::{Config, MetricsBatch, WorkerMetrics};
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+#[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
+use std::time::Instant;
+
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+use wasmtimer::std::Instant;
 
 /// Per-worker statistics. This is used for both tuning the scheduler and
 /// reporting runtime-level metrics/stats.
