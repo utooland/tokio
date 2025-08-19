@@ -132,6 +132,7 @@ pub struct Builder {
     pub(super) unhandled_panic: UnhandledPanic,
 
     #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+    #[cfg(feature = "rt-multi-thread")]
     pub(super) wasm_bindgen_shim_url: Option<String>,
 }
 
@@ -317,6 +318,7 @@ impl Builder {
             disable_lifo_slot: false,
 
             #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+            #[cfg(feature = "rt-multi-thread")]
             wasm_bindgen_shim_url: None,
         }
     }
@@ -1046,6 +1048,7 @@ impl Builder {
 
     /// Set the wasm_bindgen_shim_url for web worker
     #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+    #[cfg(feature = "rt-multi-thread")]
     pub fn wasm_bindgen_shim_url(&mut self, url: String) -> &mut Self {
         self.wasm_bindgen_shim_url = Some(url);
         self

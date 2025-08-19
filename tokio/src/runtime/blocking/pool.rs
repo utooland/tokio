@@ -102,6 +102,7 @@ struct Inner {
     metrics: SpawnerMetrics,
 
     #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+    #[cfg(feature = "rt-multi-thread")]
     wasm_bindgen_shim_url: Option<String>,
 }
 
@@ -235,6 +236,7 @@ impl BlockingPool {
                     keep_alive,
                     metrics: SpawnerMetrics::default(),
                     #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+                    #[cfg(feature = "rt-multi-thread")]
                     wasm_bindgen_shim_url: builder.wasm_bindgen_shim_url.clone(),
                 }),
             },
@@ -467,6 +469,7 @@ impl Spawner {
     ) -> io::Result<thread::JoinHandle<()>> {
         let mut builder = thread::Builder::new().name((self.inner.thread_name)());
         #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+        #[cfg(feature = "rt-multi-thread")]
         if let Some(wasm_bindgen_shim_url) = self.inner.wasm_bindgen_shim_url.as_ref() {
             builder = builder.wasm_bindgen_shim_url(wasm_bindgen_shim_url.clone());
         }
