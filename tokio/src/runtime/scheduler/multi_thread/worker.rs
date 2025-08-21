@@ -201,7 +201,7 @@ struct Remote {
     pub(super) steal: queue::Steal<Arc<Handle>>,
 
     /// Unparks the associated worker thread
-    unpark: Unparker,
+    unpark: Option<Unparker>,
 }
 
 /// Thread-local context
@@ -236,7 +236,7 @@ const MAX_LIFO_POLLS_PER_TICK: usize = 3;
 
 pub(super) fn create(
     size: usize,
-    park: Parker,
+    park: Option<Parker>,
     driver_handle: driver::Handle,
     blocking_spawner: blocking::Spawner,
     seed_generator: RngSeedGenerator,
@@ -251,7 +251,7 @@ pub(super) fn create(
         let (steal, run_queue) = queue::local();
 
         let park = park.clone();
-        let unpark = park.unpark();
+        let unpark = park.as_ref().map(|park| park.unpark());
         let metrics = WorkerMetrics::from_config(&config);
         let stats = Stats::new(&metrics);
 
@@ -263,7 +263,7 @@ pub(super) fn create(
             is_searching: false,
             is_shutdown: false,
             is_traced: false,
-            park: Some(park),
+            park,
             global_queue_interval: stats.tuned_global_queue_interval(&config),
             stats,
             rand: FastRand::from_seed(config.seed_generator.next_seed()),
@@ -728,6 +728,7 @@ impl Context {
             f();
         }
 
+        #[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
         if core.transition_to_parked(&self.worker) {
             while !core.is_shutdown && !core.is_traced {
                 core.stats.about_to_park();
@@ -757,12 +758,14 @@ impl Context {
         self.assert_lifo_enabled_is_correct(&core);
 
         // Take the parker out of core
+        #[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
         let mut park = core.park.take().expect("park missing");
 
         // Store `core` in context
         *self.core.borrow_mut() = Some(core);
 
         // Park thread
+        #[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
         if let Some(timeout) = duration {
             park.park_timeout(&self.worker.handle.driver, timeout);
         } else {
@@ -775,7 +778,10 @@ impl Context {
         core = self.core.borrow_mut().take().expect("core missing");
 
         // Place `park` back in `core`
-        core.park = Some(park);
+        #[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
+        {
+            core.park = Some(park);
+        }
 
         if core.should_notify_others() {
             self.worker.handle.notify_parked_local();
@@ -1146,19 +1152,28 @@ impl Handle {
 
         if let Some(index) = self.shared.idle.worker_to_notify(&self.shared) {
             super::counters::inc_num_unparks_local();
-            self.shared.remotes[index].unpark.unpark(&self.driver);
+            self.shared.remotes[index]
+                .unpark
+                .as_ref()
+                .map(|unpark| unpark.unpark(&self.driver));
         }
     }
 
     fn notify_parked_remote(&self) {
         if let Some(index) = self.shared.idle.worker_to_notify(&self.shared) {
-            self.shared.remotes[index].unpark.unpark(&self.driver);
+            self.shared.remotes[index]
+                .unpark
+                .as_ref()
+                .map(|unpark| unpark.unpark(&self.driver));
         }
     }
 
     pub(super) fn notify_all(&self) {
         for remote in &self.shared.remotes[..] {
-            remote.unpark.unpark(&self.driver);
+            remote
+                .unpark
+                .as_ref()
+                .map(|unpark| unpark.unpark(&self.driver));
         }
     }
 

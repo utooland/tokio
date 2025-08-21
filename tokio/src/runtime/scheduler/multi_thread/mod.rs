@@ -62,7 +62,11 @@ impl MultiThread {
         seed_generator: RngSeedGenerator,
         config: Config,
     ) -> (MultiThread, Arc<Handle>, Launch) {
-        let parker = Parker::new(driver);
+        #[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
+        let parker = Some(Parker::new(driver));
+        #[cfg(all(target_family = "wasm", target_os = "unknown"))]
+        let parker = None;
+
         let (handle, launch) = worker::create(
             size,
             parker,
